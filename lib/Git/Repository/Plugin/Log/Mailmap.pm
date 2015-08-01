@@ -12,13 +12,13 @@ Git::Repository::Plugin::Log::Mailmap - git log, with mailmap
 
 =head1 VERSION
 
-This document describes Git::Repository::Plugin::Log::Mailmap version 0.0.3
+This document describes Git::Repository::Plugin::Log::Mailmap version 0.0.4
 
 
 =cut
 
 use version;
-our $VERSION = qv('0.0.3');
+our $VERSION = qv('0.0.4');
 
 =head1 SYNOPSIS
 

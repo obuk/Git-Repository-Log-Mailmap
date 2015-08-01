@@ -10,15 +10,10 @@ use 5.006;
 Git::Repository::Log::Mailmap::Iterator - Split a git log, with mailmap
 
 
-=head1 VERSION
-
-This document describes Git::Repository::Log::Mailmap::Iterator version 0.0.3
-
-
 =cut
 
-use version;
-our $VERSION = qv('0.0.3');
+use Git::Repository::Plugin::Log::Mailmap;
+*VERSION = \$Git::Repository::Plugin::Log::Mailmap::VERSION;
 
 =head1 SYNOPSIS
 
@@ -57,11 +52,12 @@ sub init_mailmap {
 
   $self->{mailmap} = Git::Mailmap->new();
   return if grep { $_ eq '--no-use-mailmap' } @_;
-
   my $log_mailmap = $r->run(config => 'log.mailmap');
+  $log_mailmap = 'true' if grep { $_ eq '--use-mailmap' } @_;
+
   my $mailmap;
   if ($log_mailmap eq 'true') {
-    if (my $file = $r->run(config => 'mailmap.file')) {
+    if (my ($file) = glob $r->run(config => 'mailmap.file')) {
       $mailmap = slurp $file;
     }
     elsif (my $blob = $r->run(config => 'mailmap.blob')) {
@@ -72,7 +68,11 @@ sub init_mailmap {
       $mailmap = slurp $file;
     }
   }
-  $self->{mailmap}->from_string(mailmap => $mailmap) if $mailmap;
+
+  if ($mailmap) {
+    $mailmap =~ s/\s*\#.*$//gm;
+    $self->{mailmap}->from_string(mailmap => $mailmap);
+  }
 }
 
 
@@ -106,6 +106,10 @@ sub next {
 
 1;
 __END__
+
+=head1 SEE ALSO
+
+L<Git::Repository::Plugin::Log::Mailmap>
 
 =head1 AUTHOR
 
