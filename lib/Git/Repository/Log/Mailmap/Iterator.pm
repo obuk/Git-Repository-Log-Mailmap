@@ -25,7 +25,7 @@ use Git::Repository::Plugin::Log::Mailmap;
    ...
  }
 
- # or ignore default
+ # ignore .mailmap
  my $iter = Git::Repository::Log::Mailmap::Iterator($r, '--no-use-mailmap');
  # and init mailmap with Git::Mailmap
  $iter->mailmap->from_string(mailmap => $mailmap_file_as_string);
@@ -51,22 +51,24 @@ sub init_mailmap {
   my ($self, $r) = @_;
 
   $self->{mailmap} = Git::Mailmap->new();
-  return if grep { $_ eq '--no-use-mailmap' } @_;
-  my $log_mailmap = $r->run(config => 'log.mailmap');
-  $log_mailmap = 'true' if grep { $_ eq '--use-mailmap' } @_;
+  my $log_mailmap = ($r->run(config => 'log.mailmap') || '') =~ /true/;
+  for (@_) {
+    $log_mailmap = 0 if /^--no-use-mailmap$/;
+    $log_mailmap = 1 if /^--use-mailmap$/;
+    last             if /^--$/;
+  }
+  return unless $self->{log_mailmap} = $log_mailmap;
 
   my $mailmap;
-  if ($log_mailmap eq 'true') {
-    if (my ($file) = glob $r->run(config => 'mailmap.file')) {
-      $mailmap = slurp $file;
-    }
-    elsif (my $blob = $r->run(config => 'mailmap.blob')) {
-      $mailmap = $r->run('cat-file' => '-p' => $blob);
-    }
-    else {
-      my $file = catfile($r->work_tree, '.mailmap');
-      $mailmap = slurp $file;
-    }
+  if (my ($file) = glob $r->run(config => 'mailmap.file')) {
+    $mailmap = slurp $file;
+  }
+  elsif (my $blob = $r->run(config => 'mailmap.blob')) {
+    $mailmap = $r->run('cat-file' => '-p' => $blob);
+  }
+  else {
+    my $file = catfile($r->work_tree, '.mailmap');
+    $mailmap = slurp $file;
   }
 
   if ($mailmap) {
