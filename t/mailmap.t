@@ -26,6 +26,10 @@ $ENV{GIT_COMMITTER_NAME}  = 'Committer Name';
 
   can_ok($r, 'log_mailmap');
 
+  $r->run(config => '--local' => 'log.mailmap' => 'false');
+  $r->run(config => '--local' => 'mailmap.file' => '');
+  $r->run(config => '--local' => 'mailmap.blob' => '');
+
   {
     my $it = $r->log_mailmap();
     can_ok($it, 'mailmap');
@@ -58,7 +62,7 @@ END
     }
   }
 
-  $r->run(config => 'log.mailmap' => 'true');
+  $r->run(config => '--local' => 'log.mailmap' => 'true');
 
   {
     my $file = catfile($r->work_tree, '.mailmap');
@@ -79,7 +83,7 @@ END
     write_file($file, $mailmap);
     $r->run(add => $file);
     $r->run(commit => '-m' => "adds $file");
-    $r->run(config => 'mailmap.blob' => "master:mailmap.txt");
+    $r->run(config => '--local' => 'mailmap.blob' => "master:mailmap.txt");
     my $it = $r->log_mailmap;
     while (my $log = $it->next) {
       is($log->author_name, 'an2');
@@ -96,7 +100,7 @@ END
     write_file($file, $mailmap);
     $r->run(add => $file);
     $r->run(commit => '-m' => "adds $file");
-    $r->run(config => 'mailmap.file' => $file);
+    $r->run(config => '--local' => 'mailmap.file' => $file);
     my $it = $r->log_mailmap;
     while (my $log = $it->next) {
       is($log->author_name, 'an3');
