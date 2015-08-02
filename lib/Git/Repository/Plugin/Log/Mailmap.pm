@@ -12,19 +12,19 @@ Git::Repository::Plugin::Log::Mailmap - git log, with mailmap
 
 =head1 VERSION
 
-This document describes Git::Repository::Plugin::Log::Mailmap version 0.0.4
+This document describes Git::Repository::Plugin::Log::Mailmap version 0.0.5
 
 
 =cut
 
 use version;
-our $VERSION = qv('0.0.4');
+our $VERSION = qv('0.0.5');
 
 =head1 SYNOPSIS
 
     use Git::Repository 'Log::Mailmap';
     my $r = Git::Repository->new;
-    my $iter = $r->log_mailmap;
+    my $iter = $r->log;
     while (my $log = $iter->next) {
         ...;
     }
@@ -36,30 +36,46 @@ use Git::Repository::Plugin;
 our @ISA      = qw( Git::Repository::Plugin );
 sub _keywords { qw( log_mailmap ) }
 
+use Git::Repository qw( Log );
+# use Git::Repository::Plugin::Log;
 use Git::Repository::Log::Mailmap::Iterator;
+use Git::Repository::Log::Iterator;
+
+use Hook::WrapSub qw( wrap_subs unwrap_subs );
+
+wrap_subs
+  sub { },
+  'Git::Repository::Log::Iterator::new',
+  sub {
+    my ($class, @args) = @_;
+    my ($self) = @Hook::WrapSub::result;
+    $self->Git::Repository::Log::Mailmap::Iterator::init_mailmap(@args);
+  };
+
+wrap_subs
+  sub { },
+  'Git::Repository::Log::Iterator::next',
+  sub {
+    my ($self, @args) = @_;
+    for (@Hook::WrapSub::result) {
+      $self->Git::Repository::Log::Mailmap::Iterator::apply_mailmap($_);
+    }
+  };
+
+
+unless (Git::Repository::Log::Iterator->can('mailmap')) {
+  no strict 'refs';
+  *{"Git::Repository::Log::Iterator::mailmap"} =
+    \&Git::Repository::Log::Mailmap::Iterator::mailmap;
+}
+
 
 sub log_mailmap {
-
-  # skip the invocant when invoked as a class method
-  shift if !ref $_[0];
-
-  # get the iterator
-  my $iter = Git::Repository::Log::Mailmap::Iterator->new(@_);
-
-  # scalar context: return the iterator
-  return $iter if !wantarray;
-
-  # list context: return all Git::Repository::Log objects
-  my @logs;
-  while ( my $log = $iter->next ) {
-    push @logs, $log;
-  }
-  return @logs;
+  goto &Git::Repository::Plugin::Log::log;
 }
 
 1;
 __END__
-
 
 =head1 SEE ALSO
 

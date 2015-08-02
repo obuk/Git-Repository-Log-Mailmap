@@ -120,6 +120,27 @@ END
     }
   }
 
+  {
+    my $it = $r->log_mailmap(qw/--no-use-mailmap/);
+    while (my $log = $it->next) {
+      is($log->author_name, $ENV{GIT_AUTHOR_NAME});
+      is($log->author_email, $ENV{GIT_AUTHOR_EMAIL});
+      is($log->committer_name, $ENV{GIT_COMMITTER_NAME});
+      is($log->committer_email, $ENV{GIT_COMMITTER_EMAIL});
+    }
+  }
+
+  # 0.0.5
+  {
+    my $it = $r->log;
+    while (my $log = $it->next) {
+      is($log->author_name, 'an3');
+      is($log->author_email, 'a@example.org');
+      is($log->committer_name, 'cn3');
+      is($log->committer_email, 'c@example.org');
+    }
+  }
+
   $r = undef;
 }
 

@@ -126,7 +126,7 @@ sub process {
   for my $r ($self->git_dir) {
     next if $seen{$r->{git_dir}}++;
     DEBUG > 1 and say join(' ', "# git --git-dir=".$r->git_dir, "log", @argv);
-    my $iterator = $r->log_mailmap(@argv);
+    my $iterator = $r->log(@argv);
     # binmode $iterator->{fh}, ":encoding($enc)";
     my $log = $iterator->next;
     push @git, { git_dir => $r->git_dir, iterator => $iterator, log => $log };

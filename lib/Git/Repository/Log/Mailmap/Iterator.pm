@@ -83,14 +83,12 @@ sub mailmap {
 }
 
 
-sub next {
-  my ($self) = @_;
-  my $log = $self->SUPER::next(@_);
-
-  if ($log && $self->mailmap) {
+sub apply_mailmap {
+  my ($self, $log) = @_;
+  if ($log && $self->{mailmap}) {
     for my $who (qw/ author committer /) {
       $log->{"raw_$who"} = $log->{$who};
-      my ($name, $email) = $self->mailmap->map(
+      my ($name, $email) = $self->{mailmap}->map(
         email => "<".$log->{"${who}_email"}.">",
         name => $log->{"${who}_name"}
        );
@@ -101,7 +99,14 @@ sub next {
       });
     }
   }
+  $log;
+}
 
+
+sub next {
+  my ($self) = @_;
+  my $log = $self->SUPER::next(@_);
+  $log->apply_mailmap($log);
   $log;
 }
 
