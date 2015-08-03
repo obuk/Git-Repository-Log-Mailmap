@@ -68,7 +68,9 @@ sub init_mailmap {
   }
   else {
     my $file = catfile($r->work_tree, '.mailmap');
-    $mailmap = slurp $file;
+    if ($file && -f $file) {
+      $mailmap = slurp $file
+    }
   }
 
   if ($mailmap) {

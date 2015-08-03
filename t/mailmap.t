@@ -26,6 +26,10 @@ $ENV{GIT_COMMITTER_NAME}  = 'Committer Name';
 
   can_ok($r, 'log_mailmap');
 
+  $r->run(config => '--local' => 'log.mailmap' => 'false');
+  $r->run(config => '--local' => 'mailmap.file' => '');
+  $r->run(config => '--local' => 'mailmap.blob' => '');
+
   {
     my $it = $r->log_mailmap(qw/--no-use-mailmap --use-mailmap/);
     ok $it->{log_mailmap};
@@ -35,10 +39,6 @@ $ENV{GIT_COMMITTER_NAME}  = 'Committer Name';
     my $it = $r->log_mailmap(qw/--use-mailmap --no-use-mailmap/);
     ok !$it->{log_mailmap};
   }
-
-  $r->run(config => '--local' => 'log.mailmap' => 'false');
-  $r->run(config => '--local' => 'mailmap.file' => '');
-  $r->run(config => '--local' => 'mailmap.blob' => '');
 
   {
     my $it = $r->log_mailmap();
