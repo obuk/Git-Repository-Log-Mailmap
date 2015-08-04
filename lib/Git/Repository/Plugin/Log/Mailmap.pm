@@ -18,12 +18,13 @@ This document describes Git::Repository::Plugin::Log::Mailmap version 0.0.5
 =cut
 
 use version;
-our $VERSION = qv('0.0.5');
+our $VERSION = qv('0.0.6');
 
 =head1 SYNOPSIS
 
     use Git::Repository 'Log::Mailmap';
     my $r = Git::Repository->new;
+    $r->mailmap->default;  # or $r->mailmap->from_string(...);
     my $iter = $r->log;
     while (my $log = $iter->next) {
         ...;
@@ -34,22 +35,29 @@ our $VERSION = qv('0.0.5');
 
 use Git::Repository::Plugin;
 our @ISA      = qw( Git::Repository::Plugin );
-sub _keywords { qw( log_mailmap ) }
+sub _keywords { qw( log_mailmap mailmap ) }
 
 use Git::Repository qw( Log );
 # use Git::Repository::Plugin::Log;
-use Git::Repository::Log::Mailmap::Iterator;
 use Git::Repository::Log::Iterator;
 
+use Git::Repository::Plugin::Log::Mailmap::Default;
 use Hook::WrapSub qw( wrap_subs unwrap_subs );
 
 wrap_subs
   sub { },
   'Git::Repository::Log::Iterator::new',
   sub {
-    my ($class, @args) = @_;
-    my ($self) = @Hook::WrapSub::result;
-    $self->Git::Repository::Log::Mailmap::Iterator::init_mailmap(@args);
+    my ($class, $r) = @_;
+    my ($iter) = @Hook::WrapSub::result;
+    $iter->{r} = $r;
+    my $log_mailmap = ($r->run(config => 'log.mailmap') || '') =~ /true/;
+    for (@_) {
+      $log_mailmap = 0 if /^--no-use-mailmap$/;
+      $log_mailmap = 1 if /^--use-mailmap$/;
+      last             if /^--$/;
+    }
+    $r->{log_mailmap} = $log_mailmap;
   };
 
 wrap_subs
@@ -57,16 +65,29 @@ wrap_subs
   'Git::Repository::Log::Iterator::next',
   sub {
     my ($self, @args) = @_;
-    for (@Hook::WrapSub::result) {
-      $self->Git::Repository::Log::Mailmap::Iterator::apply_mailmap($_);
+    my ($mailmap, $log_mailmap) = @{$self->{r}}{qw/ mailmap log_mailmap /};
+    if ($mailmap && $log_mailmap) {
+      for (grep { $_ } @Hook::WrapSub::result) {
+        for my $who (qw/ author committer /) {
+          $_->{"raw_$who"} = $_->{$who};
+          my ($name, $email) = $mailmap->map(
+            email => "<".$_->{"${who}_email"}.">",
+            name => $_->{"${who}_name"}
+           );
+          $_->{"${who}_name"} = $name if $name;
+          ($_->{"${who}_email"} = $email) =~ s/<(.*)>/$1/ if $email;
+          $self->{$who} = join(' ', @{$_}{
+            "${who}_name", "${who}_email", "${who}_gmtime", "${who}_tz",
+          });
+        }
+      }
     }
   };
 
 
 unless (Git::Repository::Log::Iterator->can('mailmap')) {
   no strict 'refs';
-  *{"Git::Repository::Log::Iterator::mailmap"} =
-    \&Git::Repository::Log::Mailmap::Iterator::mailmap;
+  *{"Git::Repository::Log::Iterator::mailmap"} = sub { shift->{mailmap} };
 }
 
 
@@ -74,19 +95,28 @@ sub log_mailmap {
   goto &Git::Repository::Plugin::Log::log;
 }
 
+sub mailmap {
+  # skip the invocant when invoked as a class method
+  shift if !ref $_[0];
+  my $r = shift;
+  unless ($r->{mailmap}) {
+    $r->{mailmap} = Git::Repository::Plugin::Log::Mailmap::Default->new($r);
+  }
+  $r->{mailmap};
+}
+
 1;
 __END__
 
 =head1 SEE ALSO
 
-L<Git::Repository::Log>,
-L<Git::Mailmap>,
+L<Git::Repository::Log>
 
 
 =head1 BUGS AND LIMITATIONS
 
 Please report any bugs or feature requests to the web interface at
-L<https://github.com/obuk/Git-Repository-Log-Mailmap/issues>
+L<https://github.com/obuk/Git-Repository-Plugin-Log-Mailmap/issues>
 
 
 =head1 AUTHOR

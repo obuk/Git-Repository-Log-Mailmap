@@ -32,13 +32,20 @@ $ENV{GIT_COMMITTER_NAME}  = 'Committer Name';
 
   {
     my $it = $r->log_mailmap(qw/--no-use-mailmap --use-mailmap/);
-    ok $it->{log_mailmap};
+    ok $it or diag $it;
+    # ok $it->{log_mailmap} or diag explain $it;
+    ok $r->{log_mailmap} or diag explain $r;
   }
 
   {
     my $it = $r->log_mailmap(qw/--use-mailmap --no-use-mailmap/);
-    ok !$it->{log_mailmap};
+    ok $it or diag $it;
+    # ok exists $it->{log_mailmap} && !$it->{log_mailmap};
+    ok exists $r->{log_mailmap} && !$r->{log_mailmap} or diag explain $r;
   }
+
+  can_ok($r, 'mailmap');
+  can_ok($r->mailmap, qw/ from_string default r /);
 
   {
     my $it = $r->log_mailmap();
@@ -60,9 +67,10 @@ an <a@example.org> Author Name <author@example.com>
 cn <c@example.org> Committer Name <committer@example.com>
 END
 
+  $r->mailmap->from_string(mailmap => $mailmap);
+
   {
-    my $it = $r->log_mailmap();
-    $it->mailmap->from_string(mailmap => $mailmap);
+    my $it = $r->log_mailmap(qw/ --use-mailmap /);
     while (my $log = $it->next) {
       can_ok($log, qw(commit));
       is($log->author_name, 'an');
@@ -73,6 +81,7 @@ END
   }
 
   $r->run(config => '--local' => 'log.mailmap' => 'true');
+  $r->mailmap->default;
 
   {
     my $file = catfile($r->work_tree, '.mailmap');
@@ -94,6 +103,11 @@ END
     $r->run(add => $file);
     $r->run(commit => '-m' => "adds $file");
     $r->run(config => '--local' => 'mailmap.blob' => "master:mailmap.txt");
+  }
+
+  $r->mailmap->default;
+
+  {
     my $it = $r->log_mailmap;
     while (my $log = $it->next) {
       is($log->author_name, 'an2');
@@ -111,6 +125,11 @@ END
     $r->run(add => $file);
     $r->run(commit => '-m' => "adds $file");
     $r->run(config => '--local' => 'mailmap.file' => $file);
+  }
+
+  $r->mailmap->default;
+
+  {
     my $it = $r->log_mailmap;
     while (my $log = $it->next) {
       is($log->author_name, 'an3');

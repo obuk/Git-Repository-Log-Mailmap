@@ -3,8 +3,7 @@ use Test::More;
 my @mod;
 
 BEGIN {
-  @mod = map { "Git::Repository::$_" }
-    qw/ Plugin::Log::Mailmap Log::Mailmap::Iterator /;
+  @mod = map { "Git::Repository::$_" } qw/ Plugin::Log::Mailmap /;
   use_ok($_) for @mod;
 }
 
