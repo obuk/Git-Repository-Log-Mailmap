@@ -24,11 +24,11 @@ our $VERSION = qv('0.0.5');
 =head1 SYNOPSIS
 
     use Git::Repository::Plugin::Log::Mailmap::Default;
-    my $r = Git::Repository->new(git_dir => ...);
+    my $r = Git::Repository->new(git_dir => $gitdir);
 
     my $mailmap = Git::Repository::Plugin::Log::Mailmap::Default->new($r);
-    $mailmap->from_string(mailmap => $mailmap_file_as_string);
     $mailmap->default();
+    # or $mailmap->from_string(mailmap => $mailmap_file_as_string);
 
 
 =cut
@@ -85,7 +85,6 @@ __END__
 
 =head1 SEE ALSO
 
-L<Git::Repository::Log>,
 L<Git::Mailmap>,
 
 

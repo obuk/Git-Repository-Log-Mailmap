@@ -49,7 +49,7 @@ $ENV{GIT_COMMITTER_NAME}  = 'Committer Name';
 
   {
     my $it = $r->log_mailmap();
-    can_ok($it, 'mailmap');
+    # can_ok($it, 'mailmap');
     while (my $log = $it->next) {
       can_ok($log, qw(commit));
       my ($an, $ae, $cn, $ce) =

@@ -22,13 +22,21 @@ our $VERSION = qv('0.0.6');
 
 =head1 SYNOPSIS
 
+    # load mailmap plugin
     use Git::Repository 'Log::Mailmap';
-    my $r = Git::Repository->new;
+
+    # setup mailmap on the repo
+    my $r = Git::Repository->new(git_dir => $gitdir);
     $r->mailmap->default;  # or $r->mailmap->from_string(...);
+
+    # mailmap behavior from git-config log.mailmap
     my $iter = $r->log;
     while (my $log = $iter->next) {
         ...;
     }
+
+    # or it's from option --use-mailmap and --no-use-mailmap
+    my $iter = $r->log('--use-mailmap');
 
 
 =cut
@@ -84,13 +92,6 @@ wrap_subs
     }
   };
 
-
-unless (Git::Repository::Log::Iterator->can('mailmap')) {
-  no strict 'refs';
-  *{"Git::Repository::Log::Iterator::mailmap"} = sub { shift->{mailmap} };
-}
-
-
 sub log_mailmap {
   goto &Git::Repository::Plugin::Log::log;
 }
@@ -110,6 +111,7 @@ __END__
 
 =head1 SEE ALSO
 
+L<Git::Repository::Plugin::Log::Mailmap::Default>,
 L<Git::Repository::Log>
 
 
