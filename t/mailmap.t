@@ -81,7 +81,6 @@ END
   }
 
   $r->run(config => '--local' => 'log.mailmap' => 'true');
-  $r->mailmap->default;
 
   {
     my $file = catfile($r->work_tree, '.mailmap');
@@ -105,8 +104,6 @@ END
     $r->run(config => '--local' => 'mailmap.blob' => "master:mailmap.txt");
   }
 
-  $r->mailmap->default;
-
   {
     my $it = $r->log_mailmap;
     while (my $log = $it->next) {
@@ -126,8 +123,6 @@ END
     $r->run(commit => '-m' => "adds $file");
     $r->run(config => '--local' => 'mailmap.file' => $file);
   }
-
-  $r->mailmap->default;
 
   {
     my $it = $r->log_mailmap;

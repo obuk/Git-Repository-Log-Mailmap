@@ -34,7 +34,7 @@ and
 use DateTime;
 use Encode::Locale;
 use File::Spec::Functions qw/ catdir splitdir catfile /;
-use Git::Repository qw(Log::Mailmap);
+use Git::Repository qw(Log::Mailmap Log::Queue);
 use List::Util qw(sum max min);
 use Perl6::Say;
 use Perl6::Slurp;
@@ -65,8 +65,6 @@ sub new {
 
 sub init {
   my $self = shift;
-  @ARGV = grep { !$self->git_dir($_) } @ARGV;
-  $self->git_dir('.') unless $self->git_dir;
   $self->init_periodic;
   $self;
 }
@@ -98,51 +96,16 @@ sub _init_monthly {
   $self->{days}        //= 20;
 }
 
-
-sub git_dir {
-  my ($self, $dir) = @_;
-  $self->{git_dir} //= [];
-  if ($dir) {
-    my $git_dir;
-    if (-d $dir) {
-      $git_dir = eval { Git::Repository->new(git_dir => $dir ) } ||
-        eval { Git::Repository->new(git_dir => catdir($dir, '.git')) };
-    }
-    if ($git_dir) {
-      DEBUG > 2 and say "# git_dir: $git_dir->{git_dir}";
-      push @{$self->{git_dir}}, $git_dir;
-    }
-    return $git_dir;
-  }
-  @{$self->{git_dir}};
-}
-
-
 sub process {
   my $self = shift;
 
-  my @argv = (qw/--no-merges --use-mailmap/, @ARGV);
-  my @git; my %seen;
-  for my $r ($self->git_dir) {
-    next if $seen{$r->{git_dir}}++;
-    DEBUG > 1 and say join(' ', "# git --git-dir=".$r->git_dir, "log", @argv);
-    my $iterator = $r->log(@argv);
-    # binmode $iterator->{fh}, ":encoding($enc)";
-    my $log = $iterator->next;
-    push @git, { git_dir => $r->git_dir, iterator => $iterator, log => $log };
-  }
-
-  my $reverse = grep { $_ eq '--reverse' } @argv;
   my $week_number = $self->{week_number};
-  my @log; my $last_cd;
 
-  while (@git) {
-    @git = sort {
-      $reverse?
-        $a->{log}->committer_gmtime <=> $b->{log}->committer_gmtime :
-        $b->{log}->committer_gmtime <=> $a->{log}->committer_gmtime
-    } @git if @git > 1;
-    my $log = $git[0]->{log};
+  my @argv = (qw/--no-merges --use-mailmap/, @ARGV);
+  my $iterator = Git::Repository->log_queue(@argv);
+
+  my @log; my $last_cd;
+  while (my $log = $iterator->next) {
 
     my $cd = DateTime->from_epoch(
       epoch => $log->committer_gmtime, time_zone => $log->committer_tz
@@ -156,7 +119,7 @@ sub process {
     if (DEBUG > 1) {
       say $_ for
         join(' ', 'commit', $log->commit),
-        join(' ', 'git_dir', $git[0]->{git_dir}),
+        # join(' ', 'git_dir', $git[0]->{git_dir}),
         join(' ', 'Author:', $log->author_name, '<'.$log->author_email.'>'),
         join(' ', 'Date:  ', $cd->strftime("%F %T %z")),
         '',
@@ -166,8 +129,6 @@ sub process {
 
     push @log, $log;
     $last_cd = $cd;
-
-    shift @git unless $git[0]->{log} = $git[0]->{iterator}->next;
   }
 
   $self->periodic(@log) if @log;
@@ -259,13 +220,12 @@ sub _shorten {
   $count . substr($s, 0, 2);
 }
 
-1;
 
 package main;
 our @ISA = qw(git::wstats);
 sub init_periodic {
-  shift->_init_weekly  if $0 =~ /git-w/;
-  shift->_init_monthly if $0 =~ /git-m/;
+  shift->_init_weekly  if $0 =~ /\b git-w/x;
+  shift->_init_monthly if $0 =~ /\b git-m/x;
 }
 exit(__PACKAGE__->run());
 

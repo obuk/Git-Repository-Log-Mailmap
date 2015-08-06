@@ -75,7 +75,10 @@ sub default {
     }
   }
 
-  $self->from_string(mailmap => $mailmap) if $mailmap;
+  if ($mailmap) {
+    $mailmap =~ s/\s*\#.*$//mg;
+    $self->from_string(mailmap => $mailmap);
+  }
   $self;
 }
 

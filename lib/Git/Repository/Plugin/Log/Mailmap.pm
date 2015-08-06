@@ -12,7 +12,7 @@ Git::Repository::Plugin::Log::Mailmap - git log, with mailmap
 
 =head1 VERSION
 
-This document describes Git::Repository::Plugin::Log::Mailmap version 0.0.5
+This document describes Git::Repository::Plugin::Log::Mailmap version 0.0.6
 
 
 =cut
@@ -65,7 +65,7 @@ wrap_subs
       $log_mailmap = 1 if /^--use-mailmap$/;
       last             if /^--$/;
     }
-    $r->{log_mailmap} = $log_mailmap;
+    $r->mailmap->default if $r->{log_mailmap} = $log_mailmap;
   };
 
 wrap_subs
