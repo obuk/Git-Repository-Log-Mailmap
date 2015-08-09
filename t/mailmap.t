@@ -5,7 +5,7 @@ use warnings;
 use Cwd;
 use File::Slurp qw/ write_file /;
 use File::Spec::Functions qw/ catfile /;
-use Git::Repository qw(Log::Mailmap);
+use Git::Repository qw(Log Log::Mailmap);
 use Test::Git;
 use Test::More;
 

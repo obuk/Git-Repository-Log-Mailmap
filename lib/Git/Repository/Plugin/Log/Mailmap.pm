@@ -12,13 +12,13 @@ Git::Repository::Plugin::Log::Mailmap - git log, with mailmap
 
 =head1 VERSION
 
-This document describes Git::Repository::Plugin::Log::Mailmap version 0.0.6
+This document describes Git::Repository::Plugin::Log::Mailmap version 0.0.7
 
 
 =cut
 
 use version;
-our $VERSION = qv('0.0.6');
+our $VERSION = qv('0.0.7');
 
 =head1 SYNOPSIS
 
@@ -35,7 +35,7 @@ our $VERSION = qv('0.0.6');
         ...;
     }
 
-    # or it's from option --use-mailmap and --no-use-mailmap
+    # or option --use-mailmap --no-use-mailmap
     my $iter = $r->log('--use-mailmap');
 
 
@@ -51,21 +51,24 @@ use Git::Repository::Log::Iterator;
 
 use Git::Repository::Plugin::Log::Mailmap::Default;
 use Hook::WrapSub qw( wrap_subs unwrap_subs );
+use Scalar::Util qw(blessed);
 
 wrap_subs
   sub { },
   'Git::Repository::Log::Iterator::new',
   sub {
-    my ($class, $r) = @_;
-    my ($iter) = @Hook::WrapSub::result;
-    $iter->{r} = $r;
-    my $log_mailmap = ($r->run(config => 'log.mailmap') || '') =~ /true/;
+    my ($class, @cmd) = @_;
+    my ($r) = grep blessed $_ && $_->isa('Git::Repository'), @cmd;
+    $r ||= Git::Repository->new();
+    my $log_mailmap = ($r->run(config => 'log.mailmap') || '') eq 'true';
     for (@_) {
       $log_mailmap = 0 if /^--no-use-mailmap$/;
       $log_mailmap = 1 if /^--use-mailmap$/;
       last             if /^--$/;
     }
     $r->mailmap->default if $r->{log_mailmap} = $log_mailmap;
+    my ($self) = @Hook::WrapSub::result;
+    $self->{r} = $r;
   };
 
 wrap_subs
@@ -93,7 +96,8 @@ wrap_subs
   };
 
 sub log_mailmap {
-  goto &Git::Repository::Plugin::Log::log;
+  my $self = shift;
+  $self->log('--use-mailmap', @_);
 }
 
 sub mailmap {
