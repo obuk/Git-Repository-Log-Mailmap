@@ -117,14 +117,13 @@ sub process {
     }
 
     if (DEBUG > 1) {
-      say $_ for
-        join(' ', 'commit', $log->commit),
-        # join(' ', 'git_dir', $git[0]->{git_dir}),
-        join(' ', 'Author:', $log->author_name, '<'.$log->author_email.'>'),
-        join(' ', 'Date:  ', $cd->strftime("%F %T %z")),
-        '',
-        (map '    '.$_, split "\n", $log->message),
-        '';
+      say 'commit ',  $log->commit;
+      say 'git_dir ', $iterator->r->git_dir;
+      say 'Author: ', $log->author_name, '<'.$log->author_email.'>';
+      say 'Date:   ', $cd->strftime("%F %T %z");
+      say '';
+      say '    ', $_  for split "\n", $log->message;
+      say '';
     }
 
     push @log, $log;
